@@ -50,15 +50,18 @@ def parse_request(data):
     return output
 
 
+def generate_response(body):
+    length = len(body)
+    return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {length}\r\n\r\n{body}"
+
+
 def generate_user_agent_response(headers):
-    length = len(headers["User-Agent"])
-    return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {length}\r\n\r\n{headers['User-Agent']}"
+    return generate_response(headers["User-Agent"])
 
 
 def generate_echo_response(path):
     string = path.split("/")[2]
-    length = len(string)
-    return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {length}\r\n\r\n{string}"
+    return generate_response(string)
 
 
 if __name__ == "__main__":
