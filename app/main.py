@@ -18,13 +18,23 @@ def main():
             while True:
                 print(f"New connection from {address}")
                 data = connection.recv(1024).decode("utf-8")
-                request = data.split(CLRF)[0]
+                request_data = data.split(CLRF)
+                request = request_data[0]
                 print(f"Recieved request: {request}")
-                _, path, _ = request.split()
-                if path == "/":
+                request_parts = request.split()
+                if request_parts[1] == "/":
                     connection.send(b"HTTP/1.1 200 OK\r\n\r\n")
+                elif request_parts[1].startswith("/echo/"):
+                    response = generate_echo_response(request_parts[1])
+                    connection.send(response.encode())
                 else:
                     connection.send(b"HTTP/1.1 404 Not Found\r\n\r\n")
+
+
+def generate_echo_response(request):
+    string = request.split("/")[2]
+    length = len(string)
+    return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {length}\r\n\r\n{string}"
 
 
 if __name__ == "__main__":
