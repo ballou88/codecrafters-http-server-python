@@ -68,6 +68,8 @@ def build_response(res_data):
     if "body" in res_data:
         length = len(res_data["body"])
         response.append(f"Content-Length: {length}")
+    if "Content-Encoding" in res_data:
+        response.append(f"Content-Encoding: {res_data['Content-Encoding']}")
     response.append("")
     if "body" in res_data:
         response.append(res_data["body"])
@@ -95,11 +97,16 @@ def generate_file_response(req):
     if os.path.isfile(file_path):
         with open(file_path, "r") as f:
             data = f.read()
-        return {
+        res_data = {
             "status": 200,
-            "body": data,
             "Content-Type": "application/octet-stream",
         }
+        if "Accept-Encoding" in req["headers"]:
+            if req["headers"]["Accept-Encoding"] in ["gzip"]:
+                print("HERE")
+                res_data["Content-Encoding"] = "gzip"
+        res_data["body"] = data
+        return res_data
     else:
         return {"status": 404}
 
@@ -114,7 +121,12 @@ def generate_user_agent_response(req):
 
 def generate_echo_response(req):
     string = req["path"].split("/")[2]
-    return {"status": 200, "body": string, "Content-Type": "text/plain"}
+    res_data = {"status": 200, "body": string, "Content-Type": "text/plain"}
+    if "Accept-Encoding" in req["headers"]:
+        if req["headers"]["Accept-Encoding"] in ["gzip"]:
+            res_data["body"] = string
+            res_data["Content-Encoding"] = "gzip"
+    return res_data
 
 
 if __name__ == "__main__":
