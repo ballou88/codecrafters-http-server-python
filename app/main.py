@@ -65,19 +65,18 @@ def handle_connection(conn):
 
 
 def build_response(res_data):
-    RESPONSE = {200: "200 OK\r\n", 201: "201 Created\r\n", 404: "404 Not Found\r\n"}
-    response = f"HTTP/1.1 {RESPONSE[res_data['status']]}"
-    headers = []
+    RESPONSE = {200: "200 OK", 201: "201 Created", 404: "404 Not Found"}
+    response = [f"HTTP/1.1 {RESPONSE[res_data['status']]}"]
     if "Content-Type" in res_data:
-        headers.append(f"Content-Type: {res_data['Content-Type']}")
+        response.append(f"Content-Type: {res_data['Content-Type']}")
     if "body" in res_data:
         length = len(res_data["body"])
-        headers.append(f"Content-Length: {length}")
-    header_string = "\r\n".join(headers)
-    response += f"{header_string}\r\n"
+        response.append(f"Content-Length: {length}")
+    response.append("")
     if "body" in res_data:
-        response += f"\r\n{res_data['body']}"
-    return response.encode()
+        response.append(res_data["body"])
+    response.append("")
+    return "\r\n".join(response).encode()
 
 
 def handle_file_create(req):
