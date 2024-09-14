@@ -1,6 +1,5 @@
 import socket
 import gzip
-import binascii
 import argparse
 import os.path
 import concurrent.futures
