@@ -27,7 +27,10 @@ def parse_request(data):
     index = 1
     while lines[index] != "":
         header = lines[index].split(":")
-        output["headers"][header[0]] = header[1].lstrip()
+        if header[0] == "Accept-Encoding":
+            output["headers"][header[0]] = header[1].lstrip().split(", ")
+        else:
+            output["headers"][header[0]] = header[1].lstrip()
         index += 1
     output["body"] = lines[index + 1]
     return output
@@ -123,9 +126,11 @@ def generate_echo_response(req):
     string = req["path"].split("/")[2]
     res_data = {"status": 200, "body": string, "Content-Type": "text/plain"}
     if "Accept-Encoding" in req["headers"]:
-        if req["headers"]["Accept-Encoding"] in ["gzip"]:
-            res_data["body"] = string
-            res_data["Content-Encoding"] = "gzip"
+        encodings = req["headers"]["Accept-Encoding"]
+        for encoding in encodings:
+            if encoding in ["gzip"]:
+                res_data["body"] = string
+                res_data["Content-Encoding"] = encoding
     return res_data
 
 
