@@ -58,7 +58,7 @@ def handle_request(req):
         if req.path.startswith("/files/"):
             handle_file_create(req)
             response.status = 201
-    return response.out()
+    return response.generate()
 
 
 def handle_file_create(req):

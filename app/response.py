@@ -12,7 +12,7 @@ class Response:
         self.accept_encoding = []
         self.encoded_body = ""
 
-    def out(self):
+    def generate(self):
         response = [f"HTTP/1.1 {Response.RESPONSE[self.status]}"]
         if self.accept_encoding:
             for encoding in self.accept_encoding:
