@@ -1,5 +1,4 @@
 import socket
-import gzip
 import argparse
 import os.path
 import concurrent.futures
@@ -22,7 +21,7 @@ def handle_connection(conn):
     data = conn.recv(1024).decode()
     req = Request(data)
     response = handle_request(req)
-    conn.send(response)
+    conn.sendall(response)
 
 
 def handle_request(req):
