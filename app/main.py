@@ -21,10 +21,14 @@ def handle_connection(conn):
     print("handling connection")
     data = conn.recv(1024).decode()
     req = Request(data)
+    response = handle_request(req)
+    conn.send(response)
+
+
+def handle_request(req):
     if req is None:
         res_data = {"status": 500}
-        conn.send(build_response(res_data))
-        return
+        return build_response(res_data)
     res_data = {}
     if req.method == "GET":
         if req.path == "/":
@@ -40,7 +44,7 @@ def handle_connection(conn):
     elif req.method == "POST":
         if req.path.startswith("/files/"):
             res_data = handle_file_create(req)
-    conn.send(build_response(res_data))
+    return build_response(res_data)
 
 
 def build_response(res_data):
