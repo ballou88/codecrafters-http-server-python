@@ -1,4 +1,6 @@
 import socket
+import gzip
+import binascii
 import argparse
 import os.path
 import concurrent.futures
@@ -68,16 +70,17 @@ def build_response(res_data):
     response = [f"HTTP/1.1 {RESPONSE[res_data['status']]}"]
     if "Content-Type" in res_data:
         response.append(f"Content-Type: {res_data['Content-Type']}")
-    if "body" in res_data:
-        length = len(res_data["body"])
-        response.append(f"Content-Length: {length}")
+    if "Content-Length" in res_data:
+        response.append(f"Content-Length: {res_data['Content-Length']}")
     if "Content-Encoding" in res_data:
         response.append(f"Content-Encoding: {res_data['Content-Encoding']}")
-    response.append("")
-    if "body" in res_data:
-        response.append(res_data["body"])
-    response.append("")
-    return "\r\n".join(response).encode()
+    out = "\r\n".join(response) + "\r\n\r\n"
+    if res_data.get("body"):
+        out = out.encode() + bytes(res_data["body"])
+    else:
+        out = out.encode()
+    print(out)
+    return out
 
 
 def handle_file_create(req):
@@ -103,12 +106,9 @@ def generate_file_response(req):
         res_data = {
             "status": 200,
             "Content-Type": "application/octet-stream",
+            "body": data.encode(),
+            "Content-Length": len(data),
         }
-        if "Accept-Encoding" in req["headers"]:
-            if req["headers"]["Accept-Encoding"] in ["gzip"]:
-                print("HERE")
-                res_data["Content-Encoding"] = "gzip"
-        res_data["body"] = data
         return res_data
     else:
         return {"status": 404}
@@ -117,20 +117,27 @@ def generate_file_response(req):
 def generate_user_agent_response(req):
     return {
         "status": 200,
-        "body": req["headers"]["User-Agent"],
+        "body": req["headers"]["User-Agent"].encode(),
         "Content-Type": "text/plain",
+        "Content-Length": len(req["headers"]["User-Agent"]),
     }
 
 
 def generate_echo_response(req):
     string = req["path"].split("/")[2]
-    res_data = {"status": 200, "body": string, "Content-Type": "text/plain"}
+    res_data = {
+        "status": 200,
+        "Content-Type": "text/plain",
+        "body": string.encode(),
+        "Content-Length": len(string.encode()),
+    }
     if "Accept-Encoding" in req["headers"]:
         encodings = req["headers"]["Accept-Encoding"]
         for encoding in encodings:
             if encoding in ["gzip"]:
-                res_data["body"] = string
+                res_data["body"] = gzip.compress(string.encode())
                 res_data["Content-Encoding"] = encoding
+                res_data["Content-Length"] = len(res_data["body"])
     return res_data
 
 
