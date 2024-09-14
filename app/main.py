@@ -1,5 +1,6 @@
 import socket
-from typing import List  # noqa: F401
+import argparse
+import os.path
 import concurrent.futures
 
 
@@ -20,15 +21,29 @@ def handle_connection(conn):
     req = parse_request(data)
     print(f"Recieved request: {req}")
     if req["path"] == "/":
-        conn.send(b"HTTP/1.1 200 OK\r\n\r\n")
+        res_data = {"status": 200}
+        conn.send(build_response(res_data))
     elif req["path"] == "/user-agent":
         response = generate_user_agent_response(req["headers"])
         conn.send(response.encode())
     elif req["path"].startswith("/echo/"):
         response = generate_echo_response(req["path"])
         conn.send(response.encode())
+    elif req["path"].startswith("/files/"):
+        response = generate_file_response(req["path"])
+        conn.send(response.encode())
     else:
-        conn.send(b"HTTP/1.1 404 Not Found\r\n\r\n")
+        res_data = {"status": 404}
+        conn.send(build_response(res_data))
+
+
+def build_response(res_data):
+    RESPONSE = {200: "200 OK\r\n", 404: "404 Not Found\r\n"}
+    response = f"HTTP/1.1 {RESPONSE[res_data['status']]}"
+    if "Content-Type" in res_data:
+        response += " " + res_data["Content-Type"]
+    response += "\r\n"
+    return response.encode()
 
 
 def parse_request(data):
@@ -53,6 +68,20 @@ def parse_request(data):
 def generate_response(body):
     length = len(body)
     return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {length}\r\n\r\n{body}"
+
+
+def generate_file_response(path):
+    file_name = path.split("/")[2]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--directory", dest="directory")
+    args = parser.parse_args()
+    file_path = args.directory + file_name
+    if os.path.isfile(file_path):
+        with open(file_path, "r") as f:
+            data = f.read()
+        return generate_response(data)
+    else:
+        return "HTTP/1.1 404 Not Found\r\n\r\n"
 
 
 def generate_user_agent_response(headers):
