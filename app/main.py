@@ -49,7 +49,9 @@ def handle_request(req):
             return response.out()
     elif req.method == "POST":
         if req.path.startswith("/files/"):
-            res_data = handle_file_create(req)
+            handle_file_create(req)
+            response.status = 201
+            return response.out()
     return build_response(res_data)
 
 
@@ -79,7 +81,6 @@ def handle_file_create(req):
     file_path = args.directory + file_name
     with open(file_path, "w") as f:
         f.write(req.body)
-    return {"status": 201}
 
 
 def generate_file_response(req):
