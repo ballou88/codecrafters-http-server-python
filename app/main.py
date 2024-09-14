@@ -4,6 +4,7 @@ import argparse
 import os.path
 import concurrent.futures
 from .request import Request
+from .response import Response
 
 
 def main():
@@ -18,7 +19,6 @@ def main():
 
 
 def handle_connection(conn):
-    print("handling connection")
     data = conn.recv(1024).decode()
     req = Request(data)
     response = handle_request(req)
@@ -26,21 +26,27 @@ def handle_connection(conn):
 
 
 def handle_request(req):
-    if req is None:
-        res_data = {"status": 500}
-        return build_response(res_data)
+    response = Response()
+    # if req is None:
+    #     response.status = 500
+    #     return response.out()
     res_data = {}
     if req.method == "GET":
         if req.path == "/":
-            res_data = {"status": 200}
+            response.status = 200
+            return response.out()
         elif req.path == "/user-agent":
-            res_data = generate_user_agent_response(req)
+            response.status = 200
+            response.body = req.headers["User-Agent"].encode()
+            response.content_type = "text/plain"
+            return response.out()
         elif req.path.startswith("/echo/"):
             res_data = generate_echo_response(req)
         elif req.path.startswith("/files/"):
             res_data = generate_file_response(req)
         else:
-            res_data = {"status": 404}
+            response.status = 404
+            return response.out()
     elif req.method == "POST":
         if req.path.startswith("/files/"):
             res_data = handle_file_create(req)
@@ -94,15 +100,6 @@ def generate_file_response(req):
         return res_data
     else:
         return {"status": 404}
-
-
-def generate_user_agent_response(req):
-    return {
-        "status": 200,
-        "body": req.headers["User-Agent"].encode(),
-        "Content-Type": "text/plain",
-        "Content-Length": len(req.headers["User-Agent"]),
-    }
 
 
 def generate_echo_response(req):
