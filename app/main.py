@@ -50,7 +50,7 @@ def handle_connection(conn):
         conn.send(response)
     elif req["path"].startswith("/files/"):
         response = generate_file_response(req["path"])
-        conn.send(response.encode())
+        conn.send(response)
     else:
         res_data = {"status": 404}
         conn.send(build_response(res_data))
@@ -72,11 +72,6 @@ def build_response(res_data):
     return response.encode()
 
 
-def generate_response(body):
-    length = len(body)
-    return f"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {length}\r\n\r\n{body}"
-
-
 def generate_file_response(path):
     file_name = path.split("/")[2]
     parser = argparse.ArgumentParser()
@@ -86,9 +81,15 @@ def generate_file_response(path):
     if os.path.isfile(file_path):
         with open(file_path, "r") as f:
             data = f.read()
-        return generate_response(data)
+        res_data = {
+            "status": 200,
+            "body": data,
+            "Content-Type": "application/octet-stream",
+        }
+        return build_response(res_data)
     else:
-        return "HTTP/1.1 404 Not Found\r\n\r\n"
+        res_data = {"status": 404}
+        return build_response(res_data)
 
 
 def generate_user_agent_response(headers):
