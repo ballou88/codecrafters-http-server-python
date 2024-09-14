@@ -3,6 +3,7 @@ import gzip
 import argparse
 import os.path
 import concurrent.futures
+from .request import Request
 
 
 def main():
@@ -17,20 +18,7 @@ def main():
 
 
 def parse_request(data):
-    output = {"method": "", "path": "", "version": "", "headers": {}, "body": ""}
-    lines = data.split("\r\n")
-    output["method"], output["path"], output["version"] = lines[0].split()[0:3]
-    # Parse headers
-    index = 1
-    while lines[index] != "":
-        header = lines[index].split(":")
-        if header[0] == "Accept-Encoding":
-            output["headers"][header[0]] = header[1].lstrip().split(", ")
-        else:
-            output["headers"][header[0]] = header[1].lstrip()
-        index += 1
-    output["body"] = lines[index + 1]
-    return output
+    return Request(data)
 
 
 def handle_connection(conn):
@@ -41,21 +29,20 @@ def handle_connection(conn):
         res_data = {"status": 500}
         conn.send(build_response(res_data))
         return
-    print(f"Recieved request: {req}")
     res_data = {}
-    if req["method"] == "GET":
-        if req["path"] == "/":
+    if req.method == "GET":
+        if req.path == "/":
             res_data = {"status": 200}
-        elif req["path"] == "/user-agent":
+        elif req.path == "/user-agent":
             res_data = generate_user_agent_response(req)
-        elif req["path"].startswith("/echo/"):
+        elif req.path.startswith("/echo/"):
             res_data = generate_echo_response(req)
-        elif req["path"].startswith("/files/"):
+        elif req.path.startswith("/files/"):
             res_data = generate_file_response(req)
         else:
             res_data = {"status": 404}
-    elif req["method"] == "POST":
-        if req["path"].startswith("/files/"):
+    elif req.method == "POST":
+        if req.path.startswith("/files/"):
             res_data = handle_file_create(req)
     conn.send(build_response(res_data))
 
@@ -79,18 +66,18 @@ def build_response(res_data):
 
 
 def handle_file_create(req):
-    file_name = req["path"].split("/")[2]
+    file_name = req.path.split("/")[2]
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", dest="directory")
     args = parser.parse_args()
     file_path = args.directory + file_name
     with open(file_path, "w") as f:
-        f.write(req["body"])
+        f.write(req.body)
     return {"status": 201}
 
 
 def generate_file_response(req):
-    file_name = req["path"].split("/")[2]
+    file_name = req.path.split("/")[2]
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", dest="directory")
     args = parser.parse_args()
@@ -112,22 +99,22 @@ def generate_file_response(req):
 def generate_user_agent_response(req):
     return {
         "status": 200,
-        "body": req["headers"]["User-Agent"].encode(),
+        "body": req.headers["User-Agent"].encode(),
         "Content-Type": "text/plain",
-        "Content-Length": len(req["headers"]["User-Agent"]),
+        "Content-Length": len(req.headers["User-Agent"]),
     }
 
 
 def generate_echo_response(req):
-    string = req["path"].split("/")[2]
+    string = req.path.split("/")[2]
     res_data = {
         "status": 200,
         "Content-Type": "text/plain",
         "body": string.encode(),
         "Content-Length": len(string.encode()),
     }
-    if "Accept-Encoding" in req["headers"]:
-        encodings = req["headers"]["Accept-Encoding"]
+    if "Accept-Encoding" in req.headers:
+        encodings = req.headers["Accept-Encoding"]
         for encoding in encodings:
             if encoding in ["gzip"]:
                 res_data["body"] = gzip.compress(string.encode())
