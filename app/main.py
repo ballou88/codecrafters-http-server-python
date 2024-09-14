@@ -17,14 +17,10 @@ def main():
             executor.submit(handle_connection, conn)
 
 
-def parse_request(data):
-    return Request(data)
-
-
 def handle_connection(conn):
     print("handling connection")
     data = conn.recv(1024).decode()
-    req = parse_request(data)
+    req = Request(data)
     if req is None:
         res_data = {"status": 500}
         conn.send(build_response(res_data))
