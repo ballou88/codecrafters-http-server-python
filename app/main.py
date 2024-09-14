@@ -42,26 +42,22 @@ def handle_connection(conn):
         conn.send(build_response(res_data))
         return
     print(f"Recieved request: {req}")
+    res_data = {}
     if req["method"] == "GET":
         if req["path"] == "/":
             res_data = {"status": 200}
-            conn.send(build_response(res_data))
         elif req["path"] == "/user-agent":
-            response = generate_user_agent_response(req["headers"])
-            conn.send(response)
+            res_data = generate_user_agent_response(req)
         elif req["path"].startswith("/echo/"):
-            response = generate_echo_response(req["path"])
-            conn.send(response)
+            res_data = generate_echo_response(req)
         elif req["path"].startswith("/files/"):
-            response = generate_file_response(req["path"])
-            conn.send(response)
+            res_data = generate_file_response(req)
         else:
             res_data = {"status": 404}
-            conn.send(build_response(res_data))
     elif req["method"] == "POST":
         if req["path"].startswith("/files/"):
-            response = handle_file_create(req)
-            conn.send(response)
+            res_data = handle_file_create(req)
+    conn.send(build_response(res_data))
 
 
 def build_response(res_data):
@@ -87,12 +83,11 @@ def handle_file_create(req):
     file_path = args.directory + file_name
     with open(file_path, "w") as f:
         f.write(req["body"])
-    res_data = {"status": 201}
-    return build_response(res_data)
+    return {"status": 201}
 
 
-def generate_file_response(path):
-    file_name = path.split("/")[2]
+def generate_file_response(req):
+    file_name = req["path"].split("/")[2]
     parser = argparse.ArgumentParser()
     parser.add_argument("--directory", dest="directory")
     args = parser.parse_args()
@@ -100,30 +95,26 @@ def generate_file_response(path):
     if os.path.isfile(file_path):
         with open(file_path, "r") as f:
             data = f.read()
-        res_data = {
+        return {
             "status": 200,
             "body": data,
             "Content-Type": "application/octet-stream",
         }
-        return build_response(res_data)
     else:
-        res_data = {"status": 404}
-        return build_response(res_data)
+        return {"status": 404}
 
 
-def generate_user_agent_response(headers):
-    res_data = {
+def generate_user_agent_response(req):
+    return {
         "status": 200,
-        "body": headers["User-Agent"],
+        "body": req["headers"]["User-Agent"],
         "Content-Type": "text/plain",
     }
-    return build_response(res_data)
 
 
-def generate_echo_response(path):
-    string = path.split("/")[2]
-    res_data = {"status": 200, "body": string, "Content-Type": "text/plain"}
-    return build_response(res_data)
+def generate_echo_response(req):
+    string = req["path"].split("/")[2]
+    return {"status": 200, "body": string, "Content-Type": "text/plain"}
 
 
 if __name__ == "__main__":
