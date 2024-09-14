@@ -17,13 +17,9 @@ def main():
 
 
 def parse_request(data):
-    CLRF = "\r\n"
     output = {"method": "", "path": "", "version": "", "headers": {}, "body": ""}
-    lines = data.split(CLRF)
-    request_list = lines[0].split()
-    output["method"] = request_list[0]
-    output["path"] = request_list[1]
-    output["version"] = request_list[2]
+    lines = data.split("\r\n")
+    output["method"], output["path"], output["version"] = lines[0].split()[0:3]
     # Parse headers
     index = 1
     while lines[index] != "":
